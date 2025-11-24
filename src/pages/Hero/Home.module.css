@@ -95,14 +95,16 @@ h1 {
 }
 
 .card h3 {
-  font-size: 20px;
-  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 5px;
 }
 
 .card p {
   font-size: 15px;
-  opacity: 0.85;
-  line-height: 1.5;
+  opacity: 0.75;
+  line-height: 1.2;
+  font-weight: 300;
 }
 
 /* ----------------------- */
@@ -132,12 +134,17 @@ h1 {
   .card {
     padding: 45px 16px;
   }
+
+  .card h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
 }
 
 /* Desktop and up (900px+) */
 @media (min-width: 900px) {
   .heroSection {
-    padding: 100px 0;
+    padding-top: 100px;
   }
 
   .cardsGrid {

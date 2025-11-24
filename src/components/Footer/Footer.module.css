@@ -1,0 +1,130 @@
+/* Mobile-first base styles */
+.footer {
+  background: #000;
+  color: #fff;
+  padding: 40px 35px 20px;
+  width: 100%;
+}
+
+.footerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Brand Section */
+.brandSection {
+  /* display: flex;
+  flex-direction: column;
+  gap: 20px; */
+  margin-bottom: 27px;
+}
+
+.logo {
+  font-size: 29px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.logo span {
+  color: #40a9ff;
+}
+
+/* Links and Socials Sections */
+.linksSection,
+.socialsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+}
+
+.linksSection h3,
+.socialsSection h3 {
+  font-size: 24px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.linksSection ul,
+.socialsSection ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.linksSection a,
+.socialsSection a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 20px;
+  /* opacity: 0.85; */
+  transition: opacity 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.socialIcon {
+  font-size: 20px;
+}
+
+.linksSection a:hover,
+.socialsSection a:hover {
+  opacity: 1;
+}
+
+/* Copyright */
+.copyright {
+  text-align: center;
+  padding-top: 30px;
+  margin-top: 40px;
+  margin-bottom: 60px;
+}
+
+.copyright p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* ----------------------- */
+/* RESPONSIVE DESIGN */
+/* Mobile-first with min-width */
+/* ----------------------- */
+
+/* Tablet and up (768px+) */
+@media (min-width: 768px) {
+  .footer {
+    padding: 18px 35px 0px;
+  }
+
+  .footerContent {
+    flex-direction: row;
+    /* justify-content: start; */
+    gap: 121px;
+  }
+
+  .brandSection {
+    flex: 1;
+    max-width: 350px;
+  }
+
+  .newsletterForm {
+    max-width: 320px;
+  }
+
+  .linksSection,
+  .socialsSection {
+    flex-shrink: 0;
+  }
+
+  .copyright {
+    margin-top: 10px;
+    margin-bottom: 20px;
+  }
+}
