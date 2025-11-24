@@ -1,12 +1,23 @@
 import React from "react";
 import styles from "./Navbar.module.css";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { AiFillHome } from "react-icons/ai";
 import { FaExchangeAlt } from "react-icons/fa";
 import { FaGift } from "react-icons/fa";
 import { FaUser } from "react-icons/fa";
 
 const Navbar = () => {
+  const location = useLocation();
+
+  // Custom handler for P2P link to pass background location
+  const getP2PState = () => {
+    // Only set backgroundLocation if we're not already on /p2p
+    if (location.pathname !== "/p2p") {
+      return { backgroundLocation: location };
+    }
+    return {};
+  };
+
   return (
     <>
       {/* TOP NAV (Desktop) */}
@@ -14,7 +25,6 @@ const Navbar = () => {
         <h2 className={styles.logo}>
           <span>Sonic </span>Exchange
         </h2>
-
         <ul className={styles.actions}>
           <li>
             <NavLink
@@ -28,6 +38,7 @@ const Navbar = () => {
             <NavLink
               className={({ isActive }) => (isActive ? styles.active : "")}
               to={"/p2p"}
+              state={getP2PState()}
             >
               P2P
             </NavLink>
@@ -60,15 +71,14 @@ const Navbar = () => {
           <AiFillHome />
           <span>Home</span>
         </NavLink>
-
         <NavLink
           className={({ isActive }) => (isActive ? styles.active : "")}
           to="/p2p"
+          state={getP2PState()}
         >
           <FaExchangeAlt />
           <span>P2P</span>
         </NavLink>
-
         <NavLink
           className={({ isActive }) => (isActive ? styles.active : "")}
           to="/airdrop"
@@ -76,7 +86,6 @@ const Navbar = () => {
           <FaGift />
           <span>Airdrop</span>
         </NavLink>
-
         <NavLink
           className={({ isActive }) => (isActive ? styles.active : "")}
           to="/profile"
