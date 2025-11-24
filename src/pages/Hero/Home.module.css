@@ -79,13 +79,14 @@ h1 {
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgb(189 189 189 / 2%);
   border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 20px 16px;
   border-radius: 16px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(15px);
   display: flex;
   align-items: center;
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .card img {
