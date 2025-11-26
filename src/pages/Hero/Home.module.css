@@ -1,0 +1,155 @@
+/* Mobile-first base styles */
+.homeContainer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.heroSection {
+  width: 100%;
+  padding: 35px 0;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 640px;
+  padding: 0 20px;
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.subtext {
+  margin-top: 30px;
+  font-size: 15px;
+  opacity: 0.76;
+  font-weight: 400;
+  max-width: 345px;
+}
+
+.buttons {
+  margin-top: 30px;
+  display: flex;
+  /* flex-direction: column; */
+  gap: 12px;
+  justify-content: center;
+}
+
+.start,
+.airdrop {
+  width: 100%;
+  padding: 13px 19px;
+  font-size: 18px;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.start {
+  background: #2e7df6;
+  color: white;
+}
+
+.airdrop {
+  background: #4adf4a;
+  color: black;
+}
+
+/* Cards Grid - Mobile */
+.cardsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 25px;
+  padding: 0 20px;
+  max-width: 500px;
+  width: 100%;
+  margin-bottom: 50px;
+}
+
+.card {
+  background: rgb(189 189 189 / 2%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 20px 16px;
+  border-radius: 16px;
+  backdrop-filter: blur(15px);
+  display: flex;
+  align-items: center;
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.card img {
+  width: 100px;
+  /* margin-bottom: 20px; */
+  margin-right: 20px;
+}
+
+.card h3 {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+.card p {
+  font-size: 15px;
+  opacity: 0.75;
+  line-height: 1.2;
+  font-weight: 300;
+}
+
+/* ----------------------- */
+/* RESPONSIVE DESIGN */
+/* Mobile-first with min-width */
+/* ----------------------- */
+
+/* Tablet and up (600px+) */
+@media (min-width: 600px) {
+  .buttons {
+    flex-direction: row;
+    gap: 20px;
+  }
+  h1 {
+    font-size: 36px;
+  }
+
+  .subtext {
+    font-size: 14px;
+  }
+
+  .start,
+  .airdrop {
+    width: auto;
+  }
+
+  .card {
+    padding: 45px 16px;
+  }
+
+  .card h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+}
+
+/* Desktop and up (900px+) */
+@media (min-width: 900px) {
+  .heroSection {
+    padding-top: 100px;
+  }
+
+  .cardsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 1100px;
+  }
+}

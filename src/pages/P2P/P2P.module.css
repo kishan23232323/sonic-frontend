@@ -1,0 +1,490 @@
+.container {
+  min-height: 100vh;
+  /* background: #0a0a0a; */
+  padding: 40px 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.infoButton {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.543);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.infoButton:hover {
+  color: white;
+}
+
+.toggleContainer {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.linkBtn {
+  flex: 1;
+  max-width: 200px;
+}
+
+.toggleButton {
+  /* flex: 1; */
+  width: 100%;
+  max-width: 200px;
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: #353535;
+  color: rgb(255, 255, 255);
+}
+
+.toggleButton.sellActive {
+  background: #68e545;
+  color: black;
+}
+
+.toggleButton.buyActive {
+  background: #279eff;
+  color: white;
+}
+
+.countrySelector {
+  position: relative;
+  margin-bottom: 32px;
+}
+
+.countryInput {
+  width: 100%;
+  padding: 18px 60px 18px 24px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.655);
+  border-radius: 50px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  font-weight: 300;
+  outline: none;
+  transition: border-color 0.2s;
+  backdrop-filter: blur(13.3px);
+}
+
+.countryInput:focus {
+  border-color: rgb(255, 255, 255);
+}
+
+.dropdownButton {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tradingSection {
+  background: rgba(0, 0, 0, 0.26);
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  overflow: hidden;
+  backdrop-filter: blur(13.3px);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px 25px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sectionTitle {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 6px 0 6px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: white;
+}
+
+.sectionContent {
+  padding: 25px;
+}
+
+.inputGroup {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  /* color: rgba(255, 255, 255, 0.8); */
+  margin-bottom: 6px;
+}
+
+.input {
+  width: 100%;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.selectWrapper {
+  position: relative;
+}
+
+.selectButton {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.walletSection {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.walletTitle {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+
+.networkInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.networkLabel {
+  font-size: 18px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.networkValue {
+  font-size: 18px;
+  font-weight: 500;
+  color: white;
+}
+
+.addressContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 14px 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.address {
+  flex: 1;
+  font-size: 15px;
+  font-family: "Courier New", monospace;
+  color: white;
+  word-break: break-all;
+}
+
+.copyButton {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.copyButton:hover {
+  color: white;
+}
+
+.warning {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+}
+
+.uploadSection {
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  background-color: rgba(0, 0, 0, 0.16);
+  border-radius: 16px;
+  padding: 25px;
+  text-align: center;
+  margin-bottom: 28px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.uploadSection:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.uploadButton {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uploadText {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.uploadTitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: white;
+}
+
+.uploadSubtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 15px;
+}
+
+.cancelButton {
+  flex: 1;
+  max-width: 130px;
+  padding: 16px 32px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50px;
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelButton:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.confirmButton {
+  flex: 1;
+  padding: 16px 32px;
+  background: #68e545;
+  border: none;
+  border-radius: 50px;
+  color: #0a0a0a;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirmButton:hover {
+  background: #2ed500;
+}
+
+/* Payment Method Dropdown Styles */
+.paymentMethodContainer {
+  position: relative;
+}
+
+.paymentMethodButton {
+  width: 100%;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.paymentMethodButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.paymentDropdown {
+  margin-top: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.paymentOption {
+  /* border-bottom: 1px solid rgba(255, 255, 255, 0.1); */
+  border-radius: 7px;
+}
+
+.paymentOption:last-child {
+  border-bottom: none;
+}
+
+.paymentOptionHeader {
+  width: 100%;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 20px;
+  font-weight: 400;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.paymentOptionHeader:hover {
+  color: white;
+}
+
+.activeDropdown {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.activeDropdown .paymentOptionHeader {
+  color: white;
+}
+
+.paymentOptionContent {
+  padding: 0 20px 20px 20px;
+}
+
+.paymentLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(255, 255, 255);
+  /* margin-bottom: 8px; */
+  margin-top: 9px;
+}
+
+.paymentLabel:first-child {
+  margin-top: 0;
+}
+
+.paymentInput {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.paymentInput:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.cardDetailsRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 9px;
+}
+
+.cardDetailItem {
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 20px 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .sectionContent {
+    padding: 20px;
+  }
+}

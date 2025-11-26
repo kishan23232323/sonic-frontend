@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+body {
+  background-color: #111;
+  color: white;
+  font-family: "Outfit", sans-serif;
+}
+.appWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-image: url("/background.png");
+  background-size: cover; /* makes it fill the screen */
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+
+.contentWrapper {
+  flex: 1;
+}
