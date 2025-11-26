@@ -1,5 +1,6 @@
 import React from "react";
 import styles from "./Home.module.css";
+import RubicWidget from "../../components/Widget/widget";
 
 const cardInfo = [
   {
@@ -40,8 +41,10 @@ const Home = () => {
           </p>
           <div className={styles.buttons}>
             <button className={styles.start}>Start&nbsp;Swapping</button>
-            <button className={styles.airdrop}>Join&nbsp;Airdrop</button>
           </div>
+        <div className=" flex justify-center items-start pt-10">
+            <RubicWidget />
+        </div>
         </div>
         <div className={styles.cardsGrid}>
           {cardInfo.map((card, index) => (
