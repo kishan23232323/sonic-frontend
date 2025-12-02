@@ -5,9 +5,14 @@ import { AiFillHome } from "react-icons/ai";
 import { FaExchangeAlt } from "react-icons/fa";
 import { FaGift } from "react-icons/fa";
 import { FaUser } from "react-icons/fa";
+import { useSelector } from "react-redux";
+import { LogoutBtn } from "./LogoutBtn";
+
 
 const Navbar = () => {
   const location = useLocation();
+  const { accessToken, user } = useSelector((state) => state.auth);
+  const isLoggedIn = Boolean(accessToken);
 
   // Custom handler for P2P link to pass background location
   const getP2PState = () => {
@@ -59,6 +64,20 @@ const Navbar = () => {
               Profile
             </NavLink>
           </li>
+          {!isLoggedIn ? (
+          <li>
+            <NavLink
+              className={({ isActive }) => (isActive ? styles.active : "")}
+              to={"/login"}
+            >
+              Join Now
+            </NavLink>
+          </li>
+          ) : (
+            <>
+              <LogoutBtn />
+            </>
+          )}
         </ul>
       </nav>
 

@@ -6,6 +6,9 @@ import Airdrop from "./pages/Airdrop";
 import Profile from "./pages/Profile";
 import P2P from "./pages/P2P";
 import Footer from "./components/Footer";
+import { Protected } from "./components/AuthLayout";
+import Login from "./components/Login/Login";
+import Register from "./components/Signup/SignUp";
 
 function App() {
   return (
@@ -15,6 +18,17 @@ function App() {
       <div className="contentWrapper">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/login" element={
+         <Protected authenication={false}>
+          <Login/>
+          </Protected>
+          } />
+          <Route path="/signup" element={
+          <Protected authenication={false}>
+            <Register/>
+          </Protected>
+
+          } />
           <Route path="/airdrop" element={<Airdrop />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/p2p" element={<P2P />} />
