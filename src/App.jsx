@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import NavBar from "./components/Navbar";
 import Home from "./pages/Hero/Home";
@@ -9,8 +9,46 @@ import Footer from "./components/Footer";
 import { Protected } from "./components/AuthLayout";
 import Login from "./components/Login/Login";
 import Register from "./components/Signup/SignUp";
+import AdminOrders from "./pages/AdminPanel/AdminOrders";
+import { useDispatch, useSelector } from "react-redux";
+import { getUserProfile } from "./services/authservices/authapi";
+import { logout, setCredentials } from "./store/authslice";
 
 function App() {
+  const [loading, setLoading] = React.useState(true);
+   const dispatch = useDispatch();
+  const accessToken = useSelector((state) => state.auth.accessToken);
+
+
+  useEffect(() => {
+    const token = accessToken || localStorage.getItem("accessToken");
+
+    if (!token) {
+      dispatch(logout());
+      setLoading(false);
+      return;
+    }
+
+    getUserProfile(token)
+      .then((userData) => {
+        if (userData) {
+          dispatch(
+            setCredentials({
+              user: userData, 
+              accessToken: token,
+            })
+          );
+        } else {
+          dispatch(logout());
+        }
+      })
+      .catch((error) => {
+        console.log("App.jsx :: error in getUserProfile", error);
+        dispatch(logout());
+      })
+      .finally(() => setLoading(false));
+  }, [accessToken, dispatch]);
+
   return (
     <div className="appWrapper">
       <NavBar />
@@ -37,6 +75,8 @@ function App() {
 
           {/* P2P Buy route */}
           <Route path="/p2p/buy" element={<P2P mode="buy" />} />
+
+          <Route path="/admin" element= {<AdminOrders/>} />
         </Routes>
       </div>
 

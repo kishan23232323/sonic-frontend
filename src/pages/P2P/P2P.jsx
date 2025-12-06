@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styles from "./P2P.module.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { GrCircleInformation } from "react-icons/gr";
 import {
   IoChevronDownOutline,
@@ -9,94 +9,549 @@ import {
   IoAddCircleOutline,
 } from "react-icons/io5";
 
-// Main P2P Trading Component
+import { confirmSellOrder, createSellOrder, getFiatPairs,createBuyOrder, confirmBuyOrder } from "../../services/P2Pservices/p2papi";
+import useConvert from "../../Hooks/useAutoConversion";
+
+
+
 const P2P = ({ mode = "sell" }) => {
+  const [selectedCountry, setSelectedCountry] = useState(null);
+
   return (
     <div className={styles.container}>
       <P2PHeader />
       <P2PToggle activeMode={mode} />
-      <CountrySelector />
-      {mode === "sell" ? <SellSection /> : <BuySection />}
+
+      {/* Pass setter to dropdown */}
+      <CountrySelector onSelectCountry={(c) => setSelectedCountry(c)} />
+
+      {mode === "sell" ? (
+        <SellSection selectedCountry={selectedCountry} />
+      ) : (
+        <BuySection selectedCountry={selectedCountry} />
+      )}
     </div>
   );
 };
 
-// P2P Header Component
-const P2PHeader = () => {
-  return (
-    <div className={styles.header}>
-      <h1 className={styles.title}>P2P Trading</h1>
-      <button className={styles.infoButton}>
-        <GrCircleInformation size={20} />
+
+const P2PHeader = () => (
+  <div className={styles.header}>
+    <h1 className={styles.title}>P2P Trading</h1>
+    <button className={styles.infoButton}>
+      <GrCircleInformation size={20} />
+    </button>
+  </div>
+);
+
+const P2PToggle = ({ activeMode }) => (
+  <div className={styles.toggleContainer}>
+    <Link to={"/p2p/sell"} className={styles.linkBtn}>
+      <button
+        className={`${styles.toggleButton} ${
+          activeMode === "sell" ? styles.sellActive : ""
+        }`}
+      >
+        Sell
       </button>
-    </div>
-  );
-};
+    </Link>
+    <Link to={"/p2p/buy"} className={styles.linkBtn}>
+      <button
+        className={`${styles.toggleButton} ${
+          activeMode === "buy" ? styles.buyActive : ""
+        }`}
+      >
+        Buy
+      </button>
+    </Link>
+  </div>
+);
 
-// Toggle between Buy/Sell
-const P2PToggle = ({ activeMode }) => {
-  return (
-    <div className={styles.toggleContainer}>
-      <Link to={"/p2p/sell"} className={styles.linkBtn}>
-        <button
-          className={`${styles.toggleButton} ${
-            activeMode === "sell" ? styles.sellActive : ""
-          }`}
-        >
-          Sell
-        </button>
-      </Link>
-      <Link to={"/p2p/buy"} className={styles.linkBtn}>
-        <button
-          className={`${styles.toggleButton} ${
-            activeMode === "buy" ? styles.buyActive : ""
-          }`}
-        >
-          Buy
-        </button>
-      </Link>
-    </div>
-  );
-};
 
-// Country/Region Selector
-const CountrySelector = () => {
+const CountrySelector = ({ onSelectCountry }) => {
+  const [countries, setCountries] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState("Select Country");
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const res = await getFiatPairs();
+        setCountries(res || []);
+      } catch (error) {
+        console.error("Failed to load countries:", error);
+      }
+    };
+    fetchCountries();
+  }, []);
+
+  const handleSelect = (country) => {
+    setSelected(country.country);
+    setOpen(false);
+    if (onSelectCountry) onSelectCountry(country);
+  };
+
   return (
     <div className={styles.countrySelector}>
-      <input
-        type="text"
-        placeholder="Country / Region"
-        className={styles.countryInput}
-      />
-      <button className={styles.dropdownButton}>
+      <button className={styles.countryInput} onClick={() => setOpen(!open)}>
+        {selected}
+      </button>
+
+      <button className={styles.dropdownButton} onClick={() => setOpen(!open)}>
         <IoChevronDownOutline size={28} />
       </button>
+
+      {open && (
+        <div className={styles.countryDropdown}>
+          {countries.length === 0 && <p className={styles.loadingText}>Loading...</p>}
+
+          {countries.map((item, index) => (
+            <div
+              key={index}
+              className={styles.countryItem}
+              onClick={() => handleSelect(item)}
+            >
+              <span>{item.country}</span>
+              <span className={styles.currencyTag}>{item.currency}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
-// Sell Section Component
-const SellSection = () => {
+
+const SellSection = ({ selectedCountry }) => {
+
+  const [stage, setStage] = useState("CREATE");
+  const [orderData, setOrderData] = useState(null);
+
+ 
   const [isPaymentExpanded, setIsPaymentExpanded] = useState(false);
   const [expandedPayment, setExpandedPayment] = useState(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState("Payment Method");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Payment Method");
 
-  const togglePaymentExpansion = () => {
-    setIsPaymentExpanded(!isPaymentExpanded);
+  const [usdtAmount, setUsdtAmount] = useState("");
+  const [fiatAmount, setFiatAmount] = useState("");
+  const [editingField, setEditingField] = useState(null);
+
+  const { converted, rate, loading, convert, triggerNow } = useConvert();
+  const currencyCode = selectedCountry?.currency ?? "USD";
+
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankSwiftCode, setBankSwiftCode] = useState("");
+  const [bankHolderName, setBankHolderName] = useState("");
+
+  const [upiId, setUpiId] = useState("");
+  const [paypalId, setPaypalId] = useState("");
+
+  const navigate = useNavigate();
+
+  const isIndia = selectedCountry?.country === "India";
+
+
+  // Conversion
+  
+  const onUsdtChange = (v) => {
+    setUsdtAmount(v);
+    setEditingField("usdt");
+    convert(Number(v) || 0, "usdt", currencyCode.toLowerCase());
   };
 
-  const togglePaymentOption = (option) => {
-    setExpandedPayment(expandedPayment === option ? null : option);
-  };
+  useEffect(() => {
+    if (converted == null) return;
+    if (editingField === "usdt") {
+      setFiatAmount(Number(converted).toFixed(2));
+    } else if (editingField === "fiat") {
+      setUsdtAmount(Number(converted).toFixed(6).replace(/\.?0+$/, ""));
+    }
+  }, [converted]);
+
+  useEffect(() => {
+    if (!selectedCountry) return;
+    const code = selectedCountry.currency ?? "USD";
+    if (editingField === "usdt") {
+      triggerNow(Number(usdtAmount) || 0, "usdt", code.toLowerCase());
+    } else if (editingField === "fiat") {
+      triggerNow(Number(fiatAmount) || 0, code.toLowerCase(), "usdt");
+    } else {
+      if (usdtAmount) {
+        triggerNow(Number(usdtAmount) || 0, "usdt", code.toLowerCase());
+        setEditingField("usdt");
+      } else if (fiatAmount) {
+        triggerNow(Number(fiatAmount) || 0, code.toLowerCase(), "usdt");
+        setEditingField("fiat");
+      }
+    }
+  }, [selectedCountry]);
+
+
+  // Payment Method UI handlers
+ 
+  const togglePaymentExpansion = () =>
+    setIsPaymentExpanded((s) => !s);
 
   const selectPaymentMethod = (method, displayName) => {
     setSelectedPaymentMethod(displayName);
     setExpandedPayment(method);
+
+    
+    setBankAccountNumber("");
+    setBankSwiftCode("");
+    setBankHolderName("");
+    setUpiId("");
+    setPaypalId("");
   };
 
-  console.log(selectPaymentMethod);
 
+  // Build receiverDetails object based on method
+
+  const buildReceiverDetails = () => {
+    if (expandedPayment === "bank") {
+      return {
+        bankAccountNumber: bankAccountNumber.trim(),
+        bankSwiftCode: bankSwiftCode.trim(),
+        bankHolderName: bankHolderName.trim(),
+      };
+    }
+    if (expandedPayment === "upi") {
+      return { upiId: upiId.trim() };
+    }
+    if (expandedPayment === "paypal") {
+      return { paypalId: paypalId.trim() };
+    }
+    return {};
+  };
+
+  // CREATE ORDER 
+  const handleCreateOrder = async () => {
+   
+    if (!usdtAmount || !fiatAmount || expandedPayment == null) {
+      alert("Please enter USDT, fiat and select a payment method");
+      return;
+    }
+
+    
+    if (expandedPayment === "bank") {
+      if (!bankAccountNumber || !bankSwiftCode || !bankHolderName) {
+        alert("Please fill bank account number, swift code and account holder name");
+        return;
+      }
+    } else if (expandedPayment === "upi") {
+      if (!upiId) {
+        alert("Please enter UPI ID");
+        return;
+      }
+    } else if (expandedPayment === "paypal") {
+      if (!paypalId) {
+        alert("Please enter PayPal ID");
+        return;
+      }
+    } else {
+      alert("Invalid payment method");
+      return;
+    }
+
+    const receiverDetails = buildReceiverDetails();
+
+    const payload = {
+      usdtAmount: Number(usdtAmount),
+      fiatAmount: Number(fiatAmount),
+      paymentMethod:
+        expandedPayment === "upi"
+          ? "UPI"
+          : expandedPayment === "paypal"
+          ? "PAYPAL"
+          : "BANK",
+      receiverDetails,
+      country: selectedCountry?.country,
+    };
+
+    try {
+      const response = await createSellOrder(payload);
+      console.log(response);
+      setOrderData(response.order);
+      setStage("CONFIRM");
+    } catch (err) {
+      console.error("Create sell order failed:", err);
+      alert(err?.message || "Failed to create order");
+    }
+  };
+
+  const [txnHash, setTxnHash] = useState("");
+  const [proofFile, setProofFile] = useState(null);
+
+  // CONFIRM ORDER
+  const handleConfirmSell = async () => {
+    if (!orderData) {
+      alert("Order not found");
+      return;
+    }
+    if (!txnHash) {
+      alert("Please enter transaction hash");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("txnHash", txnHash);
+    if (proofFile) formData.append("proof", proofFile);
+
+    try {
+      console.log(orderData?._id, txnHash, proofFile);
+      await confirmSellOrder({
+        orderId: orderData?._id,
+        txnHash,
+        proof: proofFile
+      });
+
+      alert("Order submitted, awaiting admin approval");
+      navigate("/profile");
+
+    } catch (err) {
+      console.error("Confirm sell failed:", err);
+      alert(err?.message || "Failed to confirm sell");
+    }
+  };
+
+ 
+  const renderCreateUI = () => (
+    <div className={styles.sectionContent}>
+      {/* USDT */}
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>USDT to Sell</label>
+        <input
+          type="number"
+          className={styles.input}
+          placeholder="Enter amount"
+          value={usdtAmount}
+          onChange={(e) => onUsdtChange(e.target.value)}
+        />
+      </div>
+
+      
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>You Will Receive ({currencyCode})</label>
+        <input
+          type="text"
+          className={styles.input}
+          value={fiatAmount}
+          disabled
+        />
+        {loading && <small style={{ color: "#aaa" }}>Updating rate...</small>}
+        {!loading && rate != null && (
+          <small style={{ color: "#aaa" }}>
+            Rate: 1 USDT = {Number(rate).toFixed(4)} {currencyCode}
+          </small>
+        )}
+      </div>
+
+      {/* Payment method + details */}
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>Payment</label>
+        <div className={styles.paymentMethodContainer}>
+          <button
+            className={styles.paymentMethodButton}
+            onClick={togglePaymentExpansion}
+          >
+            <span>{selectedPaymentMethod}</span>
+            <IoChevronDownOutline size={25} />
+          </button>
+
+{isPaymentExpanded && (
+  <div className={styles.paymentDropdown}>
+
+    {/* ------- UPI (ONLY FOR INDIA) ------- */}
+    {isIndia && (
+      <div
+        className={`${styles.paymentOption} ${
+          expandedPayment === "upi" ? styles.activeDropdown : ""
+        }`}
+      >
+        <button
+          className={styles.paymentOptionHeader}
+          onClick={() => selectPaymentMethod("upi", "UPI")}
+        >
+          <span>UPI</span>
+          <IoChevronDownOutline size={20} />
+        </button>
+
+        {expandedPayment === "upi" && (
+          <div className={styles.paymentOptionContent}>
+            <label className={styles.paymentLabel}>Enter UPI ID</label>
+            <input
+              type="text"
+              className={styles.paymentInput}
+              placeholder="example@upi"
+              value={upiId}
+              onChange={(e) => setUpiId(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* ------- PayPal (HIDE FOR INDIA) ------- */}
+    {!isIndia && (
+      <div
+        className={`${styles.paymentOption} ${
+          expandedPayment === "paypal" ? styles.activeDropdown : ""
+        }`}
+      >
+        <button
+          className={styles.paymentOptionHeader}
+          onClick={() => selectPaymentMethod("paypal", "PayPal")}
+        >
+          <span>PayPal</span>
+          <IoChevronDownOutline size={20} />
+        </button>
+
+        {expandedPayment === "paypal" && (
+          <div className={styles.paymentOptionContent}>
+            <label className={styles.paymentLabel}>Enter PayPal ID</label>
+            <input
+              type="text"
+              className={styles.paymentInput}
+              placeholder="name@example.com"
+              value={paypalId}
+              onChange={(e) => setPaypalId(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* ------- BANK (SHOW ALWAYS) ------- */}
+    <div
+      className={`${styles.paymentOption} ${
+        expandedPayment === "bank" ? styles.activeDropdown : ""
+      }`}
+    >
+      <button
+        className={styles.paymentOptionHeader}
+        onClick={() => selectPaymentMethod("bank", "Bank Transfer")}
+      >
+        <span>Bank Transfer</span>
+        <IoChevronDownOutline size={20} />
+      </button>
+
+      {expandedPayment === "bank" && (
+        <div className={styles.paymentOptionContent}>
+          <label className={styles.paymentLabel}>Account Holder Name</label>
+          <input
+            type="text"
+            className={styles.paymentInput}
+            value={bankHolderName}
+            onChange={(e) => setBankHolderName(e.target.value)}
+          />
+
+          <label className={styles.paymentLabel}>Account Number</label>
+          <input
+            type="text"
+            className={styles.paymentInput}
+            value={bankAccountNumber}
+            onChange={(e) => setBankAccountNumber(e.target.value)}
+          />
+
+          <label className={styles.paymentLabel}>SWIFT / IFSC</label>
+          <input
+            type="text"
+            className={styles.paymentInput}
+            value={bankSwiftCode}
+            onChange={(e) => setBankSwiftCode(e.target.value)}
+          />
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div className={styles.buttonGroup}>
+        <button className={styles.cancelButton}>Cancel</button>
+        <button className={styles.confirmButton} onClick={handleCreateOrder}>
+          Create Sell Order
+        </button>
+      </div>
+    </div>
+  );
+
+  // CONFIRM UI
+  
+  const renderConfirmUI = () => (
+    <div className={styles.sectionContent}>
+      <h3 className={styles.sectionTitle}>Complete Sell Order</h3>
+
+      {/* Wallet Address */}
+      <div className={styles.walletSection}>
+        <h3 className={styles.walletTitle}>Send USDT to this Address</h3>
+        <div className={styles.addressContainer}>
+          <span className={styles.address}>{orderData?.usdtWalletAddress}</span>
+          <button className={styles.copyButton}>
+            <IoCopyOutline size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Proof Upload */}
+      <div className={styles.uploadSection}>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setProofFile(e.target.files[0])}
+          style={{ display: "none" }}
+          id="sell-proof"
+        />
+        <label htmlFor="sell-proof" className={styles.uploadButton}>
+          <IoAddCircleOutline size={30} />
+        </label>
+
+        <div className={styles.uploadText}>
+          <p className={styles.uploadTitle}>Upload Proof</p>
+          <p className={styles.uploadSubtitle}>JPG / PNG supported</p>
+        </div>
+      </div>
+              {proofFile && (
+            <div className={styles.previewContainer}>
+              <img
+                src={URL.createObjectURL(proofFile)}
+                alt="Preview"
+                className={styles.previewImage}
+              />
+              <p className={styles.previewFileName}>{proofFile.name}</p>
+            </div>
+          )}
+
+      {/* Txn Hash */}
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>Transaction Hash</label>
+        <input
+          type="text"
+          className={styles.input}
+          placeholder="Enter TRX hash"
+          value={txnHash}
+          onChange={(e) => setTxnHash(e.target.value)}
+        />
+      </div>
+
+      {/* Buttons */}
+      <div className={styles.buttonGroup}>
+        <button className={styles.cancelButton} onClick={() => setStage("CREATE")}>
+          Back
+        </button>
+        <button className={styles.confirmButton} onClick={handleConfirmSell}>
+          Submit Proof
+        </button>
+      </div>
+    </div>
+  );
+
+
+  // Render container
+  
   return (
     <div className={styles.tradingSection}>
       <div className={styles.sectionHeader}>
@@ -106,243 +561,348 @@ const SellSection = () => {
         </button>
       </div>
 
-      <div className={styles.sectionContent}>
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>USDT to Sell</label>
-          <input
-            type="text"
-            className={styles.input}
-            placeholder="Enter amount"
-          />
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>You Will Receive (INR / USD)</label>
-          <input
-            type="text"
-            className={styles.input}
-            placeholder="Who Will Receive"
-          />
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Payment</label>
-          <div className={styles.paymentMethodContainer}>
-            <button
-              className={styles.paymentMethodButton}
-              onClick={togglePaymentExpansion}
-            >
-              <span>{selectedPaymentMethod}</span>
-              <IoChevronDownOutline
-                size={25}
-                style={{
-                  transform: isPaymentExpanded
-                    ? "rotate(180deg)"
-                    : "rotate(0deg)",
-                  transition: "transform 0.3s",
-                }}
-              />
-            </button>
-
-            {isPaymentExpanded && (
-              <div className={styles.paymentDropdown}>
-                {/* UPI Option */}
-                <div
-                  className={`${styles.paymentOption} ${
-                    expandedPayment === "upi" ? styles.activeDropdown : ""
-                  }`}
-                >
-                  <button
-                    className={styles.paymentOptionHeader}
-                    onClick={() => selectPaymentMethod("upi", "UPI")}
-                  >
-                    <span>UPI</span>
-                    <IoChevronDownOutline
-                      size={20}
-                      style={{
-                        transform:
-                          expandedPayment === "upi"
-                            ? "rotate(180deg)"
-                            : "rotate(0deg)",
-                        transition: "transform 0.3s",
-                      }}
-                    />
-                  </button>
-                  {expandedPayment === "upi" && (
-                    <div className={styles.paymentOptionContent}>
-                      <label className={styles.paymentLabel}>
-                        Enter UPI ID
-                      </label>
-                      <input
-                        type="text"
-                        className={styles.paymentInput}
-                        placeholder="jhonsmith@oksbi"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* PayPal Option */}
-                <div
-                  className={`${styles.paymentOption} ${
-                    expandedPayment === "paypal" ? styles.activeDropdown : ""
-                  }`}
-                >
-                  <button
-                    className={styles.paymentOptionHeader}
-                    onClick={() => selectPaymentMethod("paypal", "PayPal")}
-                  >
-                    <span>PayPal</span>
-                    <IoChevronDownOutline
-                      size={20}
-                      style={{
-                        transform:
-                          expandedPayment === "paypal"
-                            ? "rotate(180deg)"
-                            : "rotate(0deg)",
-                        transition: "transform 0.3s",
-                      }}
-                    />
-                  </button>
-                  {expandedPayment === "paypal" && (
-                    <div className={styles.paymentOptionContent}>
-                      <label className={styles.paymentLabel}>
-                        Enter PayPal ID
-                      </label>
-                      <input
-                        type="text"
-                        className={styles.paymentInput}
-                        placeholder="your.email@example.com"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Bank Transfer Option */}
-                <div
-                  className={`${styles.paymentOption} ${
-                    expandedPayment === "bank" ? styles.activeDropdown : ""
-                  }`}
-                >
-                  <button
-                    className={styles.paymentOptionHeader}
-                    onClick={() => selectPaymentMethod("bank", "Bank Transfer")}
-                  >
-                    <span>Bank Transfer</span>
-                    <IoChevronDownOutline
-                      size={20}
-                      style={{
-                        transform:
-                          expandedPayment === "bank"
-                            ? "rotate(180deg)"
-                            : "rotate(0deg)",
-                        transition: "transform 0.3s",
-                      }}
-                    />
-                  </button>
-                  {expandedPayment === "bank" && (
-                    <div className={styles.paymentOptionContent}>
-                      <label className={styles.paymentLabel}>
-                        Account Name
-                      </label>
-                      <input
-                        type="text"
-                        className={styles.paymentInput}
-                        placeholder="John Smith"
-                      />
-                      <label className={styles.paymentLabel}>Card Number</label>
-                      <input
-                        type="text"
-                        className={styles.paymentInput}
-                        placeholder="1234 5678 9012 3456"
-                      />
-                      <div className={styles.cardDetailsRow}>
-                        <div className={styles.cardDetailItem}>
-                          <label className={styles.paymentLabel}>
-                            Expire Date
-                          </label>
-                          <input
-                            type="text"
-                            className={styles.paymentInput}
-                            placeholder="MM/YY"
-                          />
-                        </div>
-                        <div className={styles.cardDetailItem}>
-                          <label className={styles.paymentLabel}>CVV</label>
-                          <input
-                            type="text"
-                            className={styles.paymentInput}
-                            placeholder="123"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.walletSection}>
-          <h3 className={styles.walletTitle}>
-            Send USDT to this wallet Address
-          </h3>
-          <div className={styles.networkInfo}>
-            <span className={styles.networkLabel}>Network:</span>
-            <span className={styles.networkValue}>TRC20</span>
-          </div>
-          <div className={styles.addressContainer}>
-            <span className={styles.address}>TMVISk3n7hDxx9N9RqA99sC4C49</span>
-            <button className={styles.copyButton}>
-              <IoCopyOutline size={18} />
-            </button>
-          </div>
-          <p className={styles.warning}>
-            Only send USDT to this address. Sending another coin or token to
-            this address may result in the loss of your deposit
-          </p>
-        </div>
-
-        <div className={styles.uploadSection}>
-          <button className={styles.uploadButton}>
-            <IoAddCircleOutline size={30} />
-          </button>
-          <div className={styles.uploadText}>
-            <p className={styles.uploadTitle}>Upload proof if required</p>
-            <p className={styles.uploadSubtitle}>JPG / PNG supported</p>
-          </div>
-        </div>
-
-        <div className={styles.buttonGroup}>
-          <button className={styles.cancelButton}>Cancel</button>
-          <button className={styles.confirmButton}>Confirm Sell</button>
-        </div>
-      </div>
+      {stage === "CREATE" ? renderCreateUI() : renderConfirmUI()}
     </div>
   );
 };
 
-// Buy Section Component
-const BuySection = () => {
+
+
+
+const BuySection = ({ selectedCountry }) => {
+  const [stage, setStage] = useState("CREATE");
+  const [orderData, setOrderData] = useState(null);
+
+  // UI states
   const [isPaymentExpanded, setIsPaymentExpanded] = useState(false);
   const [expandedPayment, setExpandedPayment] = useState(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState("Payment Method");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("Payment Method");
 
-  const togglePaymentExpansion = () => {
-    setIsPaymentExpanded(!isPaymentExpanded);
+  // Conversion states
+  const [fiatAmount, setFiatAmount] = useState("");
+  const [usdtAmount, setUsdtAmount] = useState("");
+  const [editingField, setEditingField] = useState(null);
+
+  const { converted, rate, loading, convert, triggerNow } = useConvert();
+  const currencyCode = selectedCountry?.currency ?? "USD";
+
+  // User's TRC20 address (user provides this for buy)
+  const [userUsdtWallet, setUserUsdtWallet] = useState("");
+
+  // Proof file for confirmation
+  const [proofFile, setProofFile] = useState(null);
+
+  const navigate = useNavigate();
+  const isIndia = selectedCountry?.country === "India";
+
+
+  // ------------------------- Conversion -------------------------
+  const onUsdtChange = (v) => {
+    setUsdtAmount(v);
+    setEditingField("usdt");
+    convert(Number(v) || 0, "usdt", currencyCode.toLowerCase());
   };
 
-  const togglePaymentOption = (option) => {
-    setExpandedPayment(expandedPayment === option ? null : option);
+  const onFiatChange = (v) => {
+    setFiatAmount(v);
+    setEditingField("fiat");
+    convert(Number(v) || 0, currencyCode.toLowerCase(), "usdt");
   };
 
+  useEffect(() => {
+    if (converted == null) return;
+    if (editingField === "usdt") {
+      setFiatAmount(Number(converted).toFixed(2));
+    } else if (editingField === "fiat") {
+      setUsdtAmount(Number(converted).toFixed(6).replace(/\.?0+$/, ""));
+    }
+  }, [converted]);
+
+  useEffect(() => {
+    if (!selectedCountry) return;
+    const code = selectedCountry.currency ?? "USD";
+    if (editingField === "fiat") {
+      triggerNow(Number(fiatAmount) || 0, code.toLowerCase(), "usdt");
+    } else if (editingField === "usdt") {
+      triggerNow(Number(usdtAmount) || 0, "usdt", code.toLowerCase());
+    } else {
+      if (fiatAmount) {
+        triggerNow(Number(fiatAmount) || 0, code.toLowerCase(), "usdt");
+        setEditingField("fiat");
+      } else if (usdtAmount) {
+        triggerNow(Number(usdtAmount) || 0, "usdt", code.toLowerCase());
+        setEditingField("usdt");
+      }
+    }
+  }, [selectedCountry]);
+
+  // ------------------------- Payment method selection (user only picks method) -------------------------
+  const togglePaymentExpansion = () => setIsPaymentExpanded((s) => !s);
   const selectPaymentMethod = (method, displayName) => {
     setSelectedPaymentMethod(displayName);
     setExpandedPayment(method);
   };
 
+  // ------------------------- Create Buy Order -------------------------
+  const handleCreateOrder = async () => {
+    if (!usdtAmount || !fiatAmount) {
+      alert("Please enter both USDT and fiat amounts");
+      return;
+    }
+    if (!expandedPayment) {
+      alert("Please select a payment method");
+      return;
+    }
+    if (!userUsdtWallet || userUsdtWallet.trim() === "") {
+      alert("Please enter your TRC20 USDT wallet address");
+      return;
+    }
+
+    const payload = {
+      usdtAmount: Number(usdtAmount),
+      fiatAmount: Number(fiatAmount),
+      paymentMethod:
+        expandedPayment === "upi"
+          ? "UPI"
+          : expandedPayment === "paypal"
+          ? "PAYPAL"
+          : "BANK",
+      country: selectedCountry?.country,
+      usdtWalletAddress: userUsdtWallet.trim(), // user's wallet
+    };
+
+    try {
+      const response = await createBuyOrder(payload);
+    
+      const returnedOrder = response?.order || response?.data?.order || response;
+      setOrderData(returnedOrder);
+      setStage("CONFIRM");
+    } catch (err) {
+      console.error("Create buy order failed:", err);
+      alert(err?.message || "Failed to create buy order");
+    }
+  };
+
+  // ------------------------- Confirm Buy Order -------------------------
+  const handleConfirmBuy = async () => {
+    if (!orderData?._id) {
+      alert("Order not found");
+      return;
+    }
+    if (!proofFile) {
+      alert("Please upload payment screenshot");
+      return;
+    }
+
+    try {
+      await confirmBuyOrder({ orderId: orderData._id, proof: proofFile });
+      alert("Buy order submitted, awaiting admin approval");
+      navigate("/profile");
+      
+    } catch (err) {
+      console.error("Confirm buy failed:", err);
+      alert(err?.message || "Failed to confirm buy");
+    }
+  };
+
+  // ------------------------- Render Create UI -------------------------
+  const renderCreateUI = () => (
+    <div className={styles.sectionContent}>
+      {/* Fiat amount */}
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>Amount to Pay ({currencyCode})</label>
+        <input
+          type="number"
+          className={styles.input}
+          placeholder="Enter amount"
+          value={fiatAmount}
+          disabled
+          onChange={(e) => onFiatChange(e.target.value)}
+        />
+      </div>
+
+      {/* USDT amount */}
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>You Will Get (USDT)</label>
+        <input
+          type="text"
+          className={styles.input}
+          placeholder=""
+          value={usdtAmount}
+          onChange={(e) => onUsdtChange(e.target.value)}
+        />
+        {loading && <small style={{ color: "#aaa" }}>Updating rate...</small>}
+        {!loading && rate != null && (
+          <small style={{ color: "#aaa" }}>
+            Rate: 1 USDT = {Number(rate).toFixed(4)} {currencyCode}
+          </small>
+        )}
+      </div>
+
+      {/* User TRC20 wallet address (user must provide for buy) */}
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>Your TRC20 USDT Wallet Address</label>
+        <input
+          type="text"
+          className={styles.input}
+          placeholder="Enter your TRC20 address"
+          value={userUsdtWallet}
+          onChange={(e) => setUserUsdtWallet(e.target.value)}
+        />
+      </div>
+
+      {/* Payment method (user only selects method) */}
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>Payment Method</label>
+        <div className={styles.paymentMethodContainer}>
+          <button className={styles.paymentMethodButton} onClick={togglePaymentExpansion}>
+            <span>{selectedPaymentMethod}</span>
+            <IoChevronDownOutline size={25} />
+          </button>
+
+{isPaymentExpanded && (
+  <div className={styles.paymentDropdown}>
+
+    {/* UPI → ONLY FOR INDIA */}
+    {isIndia && (
+      <div
+        className={`${styles.paymentOption} ${
+          expandedPayment === "upi" ? styles.activeDropdown : ""
+        }`}
+      >
+        <button
+          className={styles.paymentOptionHeader}
+          onClick={() => selectPaymentMethod("upi", "UPI")}
+        >
+          <span>UPI</span>
+          <IoChevronDownOutline size={20} />
+        </button>
+      </div>
+    )}
+
+    {/* PayPal → HIDE WHEN INDIA */}
+    {!isIndia && (
+      <div
+        className={`${styles.paymentOption} ${
+          expandedPayment === "paypal" ? styles.activeDropdown : ""
+        }`}
+      >
+        <button
+          className={styles.paymentOptionHeader}
+          onClick={() => selectPaymentMethod("paypal", "PayPal")}
+        >
+          <span>PayPal</span>
+          <IoChevronDownOutline size={20} />
+        </button>
+      </div>
+    )}
+
+    {/* Bank → ALWAYS SHOWN */}
+    <div
+      className={`${styles.paymentOption} ${
+        expandedPayment === "bank" ? styles.activeDropdown : ""
+      }`}
+    >
+      <button
+        className={styles.paymentOptionHeader}
+        onClick={() => selectPaymentMethod("bank", "Bank Transfer")}
+      >
+        <span>Bank Transfer</span>
+        <IoChevronDownOutline size={20} />
+      </button>
+    </div>
+  </div>
+)}
+
+
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div className={styles.buttonGroup}>
+        <button className={styles.cancelButton}>Cancel</button>
+        <button className={styles.confirmButton} onClick={handleCreateOrder}>
+          Create Buy Order
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderConfirmUI = () => {
+    const details = orderData?.receiverDetails || {};
+    
+    const displayPaymentDetail =
+      details.upiId ||
+      details.paypalId ||
+      (details.bankHolderName ? `${details.bankHolderName} • ${details.bankAccountNumber}` : null);
+
+    return (
+      <div className={styles.sectionContent}>
+        <h3 className={styles.sectionTitle}>Complete Buy Order</h3>
+
+        <div className={styles.walletSection}>
+          <h3 className={styles.walletTitle}>Send Money To</h3>
+
+          <div className={styles.addressContainer}>
+            <span className={styles.address}>
+              {displayPaymentDetail || "Payment details will appear here"}
+            </span>
+          </div>
+
+         
+          {details.bankAccountNumber && (
+            <div style={{ marginTop: 8 }}>
+              <div><strong>Account Holder:</strong> {details.bankHolderName}</div>
+              <div><strong>Account No:</strong> {details.bankAccountNumber}</div>
+              <div><strong>SWIFT/IFSC:</strong> {details.bankSwiftCode}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Upload proof */}
+        <div className={styles.uploadSection}>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setProofFile(e.target.files[0])}
+            style={{ display: "none" }}
+            id="buy-proof"
+          />
+          <label htmlFor="buy-proof" className={styles.uploadButton}>
+            <IoAddCircleOutline size={30} />
+          </label>
+
+          <div className={styles.uploadText}>
+            <p className={styles.uploadTitle}>Upload Payment Screenshot</p>
+            <p className={styles.uploadSubtitle}>JPG / PNG supported</p>
+          </div>
+        </div>
+        {proofFile && (
+            <div className={styles.previewContainer}>
+              <img
+                src={URL.createObjectURL(proofFile)}
+                alt="Preview"
+                className={styles.previewImage}
+              />
+              <p className={styles.previewFileName}>{proofFile.name}</p>
+            </div>
+          )}
+
+
+        {/* Buttons */}
+        <div className={styles.buttonGroup}>
+          <button className={styles.cancelButton} onClick={() => setStage("CREATE")}>
+            Back
+          </button>
+          <button className={styles.confirmButton} onClick={handleConfirmBuy}>
+            Submit Proof
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ------------------------- Render component -------------------------
   return (
     <div className={styles.tradingSection}>
       <div className={styles.sectionHeader}>
@@ -352,185 +912,10 @@ const BuySection = () => {
         </button>
       </div>
 
-      <div className={styles.sectionContent}>
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Amount to Pay (INR / USD)</label>
-          <input
-            type="text"
-            className={styles.input}
-            placeholder="Enter amount"
-          />
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>You Will Get (USDT)</label>
-          <input type="text" className={styles.input} placeholder="" />
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Payment</label>
-          <div className={styles.paymentMethodContainer}>
-            <button
-              className={styles.paymentMethodButton}
-              onClick={togglePaymentExpansion}
-            >
-              <span>{selectedPaymentMethod}</span>
-              <IoChevronDownOutline
-                size={25}
-                style={{
-                  transform: isPaymentExpanded
-                    ? "rotate(180deg)"
-                    : "rotate(0deg)",
-                  transition: "transform 0.3s",
-                }}
-              />
-            </button>
-
-            {isPaymentExpanded && (
-              <div className={styles.paymentDropdown}>
-                {/* UPI Option */}
-                <div className={styles.paymentOption}>
-                  <button
-                    className={styles.paymentOptionHeader}
-                    onClick={() => selectPaymentMethod("upi", "UPI")}
-                  >
-                    <span>UPI</span>
-                    <IoChevronDownOutline
-                      size={20}
-                      style={{
-                        transform:
-                          expandedPayment === "upi"
-                            ? "rotate(180deg)"
-                            : "rotate(0deg)",
-                        transition: "transform 0.3s",
-                      }}
-                    />
-                  </button>
-                  {expandedPayment === "upi" && (
-                    <div className={styles.paymentOptionContent}>
-                      <label className={styles.paymentLabel}>
-                        Enter UPI ID
-                      </label>
-                      <input
-                        type="text"
-                        className={styles.paymentInput}
-                        placeholder="jhonsmith@oksbi"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* PayPal Option */}
-                <div className={styles.paymentOption}>
-                  <button
-                    className={styles.paymentOptionHeader}
-                    onClick={() => selectPaymentMethod("paypal", "PayPal")}
-                  >
-                    <span>PayPal</span>
-                    <IoChevronDownOutline
-                      size={20}
-                      style={{
-                        transform:
-                          expandedPayment === "paypal"
-                            ? "rotate(180deg)"
-                            : "rotate(0deg)",
-                        transition: "transform 0.3s",
-                      }}
-                    />
-                  </button>
-                  {expandedPayment === "paypal" && (
-                    <div className={styles.paymentOptionContent}>
-                      <label className={styles.paymentLabel}>
-                        Enter PayPal ID
-                      </label>
-                      <input
-                        type="text"
-                        className={styles.paymentInput}
-                        placeholder="your.email@example.com"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Bank Transfer Option */}
-                <div className={styles.paymentOption}>
-                  <button
-                    className={styles.paymentOptionHeader}
-                    onClick={() => selectPaymentMethod("bank", "Bank Transfer")}
-                  >
-                    <span>Bank Transfer</span>
-                    <IoChevronDownOutline
-                      size={20}
-                      style={{
-                        transform:
-                          expandedPayment === "bank"
-                            ? "rotate(180deg)"
-                            : "rotate(0deg)",
-                        transition: "transform 0.3s",
-                      }}
-                    />
-                  </button>
-                  {expandedPayment === "bank" && (
-                    <div className={styles.paymentOptionContent}>
-                      <label className={styles.paymentLabel}>
-                        Account Name
-                      </label>
-                      <input
-                        type="text"
-                        className={styles.paymentInput}
-                        placeholder="John Smith"
-                      />
-                      <label className={styles.paymentLabel}>Card Number</label>
-                      <input
-                        type="text"
-                        className={styles.paymentInput}
-                        placeholder="1234 5678 9012 3456"
-                      />
-                      <div className={styles.cardDetailsRow}>
-                        <div className={styles.cardDetailItem}>
-                          <label className={styles.paymentLabel}>
-                            Expire Date
-                          </label>
-                          <input
-                            type="text"
-                            className={styles.paymentInput}
-                            placeholder="MM/YY"
-                          />
-                        </div>
-                        <div className={styles.cardDetailItem}>
-                          <label className={styles.paymentLabel}>CVV</label>
-                          <input
-                            type="text"
-                            className={styles.paymentInput}
-                            placeholder="123"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.uploadSection}>
-          <button className={styles.uploadButton}>
-            <IoAddCircleOutline size={30} />
-          </button>
-          <div className={styles.uploadText}>
-            <p className={styles.uploadTitle}>Upload Payment Screenshot</p>
-            <p className={styles.uploadSubtitle}>JPG / PNG supported</p>
-          </div>
-        </div>
-
-        <div className={styles.buttonGroup}>
-          <button className={styles.cancelButton}>Cancel</button>
-          <button className={styles.confirmButton}>Confirm Buy</button>
-        </div>
-      </div>
+      {stage === "CREATE" ? renderCreateUI() : renderConfirmUI()}
     </div>
   );
 };
+
 
 export default P2P;

@@ -24,9 +24,6 @@ export function LogoutBtn({onClick}) {
         }
 
 
-        
-        // navigate('/login')
-
     }    
 
     return <button onClick={logoutHandler} className='inline-bock px-0.5   text-blue-400 rounded-full font-semibold shadow cursor-pointer hover:text-purple-700 transition'>

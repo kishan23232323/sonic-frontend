@@ -13,6 +13,7 @@ const Navbar = () => {
   const location = useLocation();
   const { accessToken, user } = useSelector((state) => state.auth);
   const isLoggedIn = Boolean(accessToken);
+  const isAdmin = user?.role === "admin";
 
   // Custom handler for P2P link to pass background location
   const getP2PState = () => {
@@ -64,6 +65,17 @@ const Navbar = () => {
               Profile
             </NavLink>
           </li>
+          {isAdmin ? ( 
+          <li>
+            <NavLink
+              className={({ isActive }) => (isActive ? styles.active : "")}
+              to={"/admin"}
+            >
+              Admin
+            </NavLink>
+          </li>
+          ) : null}
+
           {!isLoggedIn ? (
           <li>
             <NavLink
